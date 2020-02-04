@@ -19,12 +19,16 @@ import com.sun.xml.internal.org.jvnet.mimepull.MIMEMessage;
 
 import net.thucydides.core.annotations.Step;
 import net.thucydides.core.steps.ScenarioSteps;
-import org.openqa.selenium.remote.server.Session;
 import ui.mailbox.EmailPage;
 import ui.mailbox.MailboxHomePage;
 import ui.mailbox.MailinatorPage;
 
 
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -73,15 +77,15 @@ public class User extends ScenarioSteps {
         return new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
     }
 
-    public static MIMEMessage createEmail(String to,
+    public static MimeMessage createEmail(String to,
                                           String from,
                                           String subject,
                                           String bodyText)
-            throws MessagingException {
+            throws Exception {
         Properties props = new Properties();
         Session session = Session.getDefaultInstance(props, null);
 
-        MIMEMessage email = new MIMEMessage(session);
+        MimeMessage email = new MimeMessage(session);
 
         email.setFrom(new InternetAddress(from));
         email.addRecipient(javax.mail.Message.RecipientType.TO,
@@ -91,8 +95,8 @@ public class User extends ScenarioSteps {
         return email;
     }
 
-    public static Message createMessageWithEmail(MIMEMessage emailContent)
-            throws MessagingException, IOException {
+    public static Message createMessageWithEmail(MimeMessage emailContent)
+            throws Exception {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         emailContent.writeTo(buffer);
         byte[] bytes = buffer.toByteArray();
@@ -104,8 +108,8 @@ public class User extends ScenarioSteps {
 
     public static Message sendMessage(Gmail service,
                                       String userId,
-                                      MIMEMessage emailContent)
-            throws MessagingException, IOException {
+                                      MimeMessage emailContent)
+            throws Exception {
         Message message = createMessageWithEmail(emailContent);
         message = service.users().messages().send(userId, message).execute();
 
@@ -120,6 +124,7 @@ public class User extends ScenarioSteps {
         Gmail service = new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
                 .setApplicationName(APPLICATION_NAME)
                 .build();
+
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
         String subject = "TEST AT " + dtf.format(now).toString();
@@ -137,7 +142,7 @@ public class User extends ScenarioSteps {
                 "To reject the Waive Cancellation Fee, reply with the word 'Reject' as the first word of your reply.\n" +
                 "\n" +
                 "Many thanks";
-        MIMEMessage mimeMessage = createEmail(address
+        MimeMessage mimeMessage = createEmail(address
                 , service.users().getProfile("user").getUserIp()
                 , subject
                 , bodyText);
@@ -145,6 +150,43 @@ public class User extends ScenarioSteps {
         sendMessage(service,
                 service.users().getProfile("user").getUserId(),
                 mimeMessage);
+        System.out.println("Done");
+//        final String username = "username@gmail.com";
+//        final String password = "password";
+//
+//        Properties prop = new Properties();
+//        prop.put("mail.smtp.host", "smtp.gmail.com");
+//        prop.put("mail.smtp.port", "465");
+//        prop.put("mail.smtp.auth", "true");
+//        prop.put("mail.smtp.socketFactory.port", "465");
+//        prop.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+//
+//        Session session = Session.getInstance(prop,
+//                new javax.mail.Authenticator() {
+//                    protected PasswordAuthentication getPasswordAuthentication() {
+//                        return new PasswordAuthentication(username, password);
+//                    }
+//                });
+//
+//        try {
+//
+//            MimeMessage message = new MimeMessage(session);
+//            message.setFrom(new InternetAddress("from@gmail.com"));
+//            message.setRecipients(
+//                    MimeMessage.RecipientType.TO,
+//                    InternetAddress.parse("to_username_a@gmail.com, to_username_b@yahoo.com")
+//            );
+//            message.setSubject("Testing Gmail SSL");
+//            message.setText("Dear Mail Crawler,"
+//                    + "\n\n Please do not spam my email!");
+//
+//            Transport.send(message);
+//
+//            System.out.println("Done");
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
     }
 
 

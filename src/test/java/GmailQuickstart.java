@@ -58,30 +58,24 @@ public class GmailQuickstart {
     }
 
     public static void main(String... args) throws IOException, GeneralSecurityException {
-        // Build a new authorized API client service.
-//        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-//        Gmail service = new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
-//                .setApplicationName(APPLICATION_NAME)
-//                .build();
-//
-//        // Print the labels in the user's account.
-//        String user = "me";
-//        ListLabelsResponse listResponse = service.users().labels().list(user).execute();
-//        List<Label> labels = listResponse.getLabels();
-//        if (labels.isEmpty()) {
-//            System.out.println("No labels found.");
-//        } else {
-//            System.out.println("Labels:");
-//            for (Label label : labels) {
-//                System.out.printf("- %s\n", label.getName());
-//            }
-//        }
-        String s = "download_recording true Package available http://abc.com/recDownload/635131586215948750.exe dfhlaluhile";
-//We now have the values on either side of where http:// was
-        String[] splitted = s.split("http://");
-//so index 1 is the url and we can just append http:// back on the beginning to get the whole url
-        String url = "http://" + splitted[1];
-        System.out.println(url);
+//         Build a new authorized API client service.
+        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+        Gmail service = new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
+                .setApplicationName(APPLICATION_NAME)
+                .build();
+
+        // Print the labels in the user's account.
+        String user = "me";
+        ListLabelsResponse listResponse = service.users().labels().list(user).execute();
+        List<Label> labels = listResponse.getLabels();
+        if (labels.isEmpty()) {
+            System.out.println("No labels found.");
+        } else {
+            System.out.println("Labels:");
+            for (Label label : labels) {
+                System.out.printf("- %s\n", label.getName());
+            }
+        }
     }
 
 }
