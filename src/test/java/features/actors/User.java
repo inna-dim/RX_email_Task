@@ -23,9 +23,7 @@ import ui.mailbox.MailinatorPage;
 
 
 import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
-import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.*;
@@ -36,17 +34,6 @@ import java.util.List;
 import java.util.Properties;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mortbay.jetty.HttpMethods.GET;
-
-import com.mailjet.client.errors.MailjetException;
-import com.mailjet.client.errors.MailjetSocketTimeoutException;
-import com.mailjet.client.MailjetClient;
-import com.mailjet.client.MailjetRequest;
-import com.mailjet.client.MailjetResponse;
-import com.mailjet.client.ClientOptions;
-import com.mailjet.client.resource.Emailv31;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 public class User extends ScenarioSteps {
     EmailPage emailPage;
@@ -107,24 +94,6 @@ public class User extends ScenarioSteps {
 
     @Step
     public void sendAMessage(String address) throws Exception {
-//        final String username = "*******@gmail.com";
-//        final String password = "*******";
-//
-//        Properties prop = new Properties();
-//        prop.put("mail.smtp.host", "smtp.gmail.com");
-//        prop.put("mail.smtp.port", "587");
-//        prop.put("mail.smtp.auth", "true");
-//        prop.put("mail.smtp.starttls.enable", "true"); //TLS
-//
-//        Session session = Session.getInstance(prop,
-//                new javax.mail.Authenticator() {
-//                    protected PasswordAuthentication getPasswordAuthentication() {
-//                        return new PasswordAuthentication(username, password);
-//                    }
-//                });
-//
-//        try {
-
 
         final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
         Gmail service = new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
@@ -183,9 +152,10 @@ public class User extends ScenarioSteps {
     public void isAbleToGetLinkFromAnEmail() {
         getDriver().switchTo().frame(emailPage.MESSAGE_FRAME);
         String emailBody = emailPage.emailBody.getText();
-        String[] splitted = emailBody.split("http://");
-        String url = ("http://" + splitted[1]).split(" ")[0];
+        String[] splitted = emailBody.split("https://");
+        String url = ("https://" + splitted[1]).split("\n")[0];
         assertThat(url.length()).isNotZero();
+        System.out.println(url);
     }
 }
 

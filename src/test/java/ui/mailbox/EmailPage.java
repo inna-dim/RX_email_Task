@@ -10,7 +10,7 @@ import java.util.List;
 
 public class EmailPage extends PageObject {
 
-    @FindBy(xpath = "//*[contains(.,'Please click the link below')]//a")
+    @FindBy(xpath = "//body[a]")
     public WebElement emailBody;
 
     @FindBy(xpath = "//iframe[@id=\"msg_body\"]")
