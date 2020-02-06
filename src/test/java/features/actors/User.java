@@ -14,8 +14,6 @@ import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.GmailScopes;
 import com.google.api.services.gmail.model.Message;
-import com.sun.xml.internal.messaging.saaj.packaging.mime.MessagingException;
-import com.sun.xml.internal.org.jvnet.mimepull.MIMEMessage;
 
 import net.thucydides.core.annotations.Step;
 import net.thucydides.core.steps.ScenarioSteps;
@@ -24,6 +22,7 @@ import ui.mailbox.MailboxHomePage;
 import ui.mailbox.MailinatorPage;
 
 
+import javax.mail.MessagingException;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Transport;
@@ -36,7 +35,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mortbay.jetty.HttpMethods.GET;
+
+import com.mailjet.client.errors.MailjetException;
+import com.mailjet.client.errors.MailjetSocketTimeoutException;
+import com.mailjet.client.MailjetClient;
+import com.mailjet.client.MailjetRequest;
+import com.mailjet.client.MailjetResponse;
+import com.mailjet.client.ClientOptions;
+import com.mailjet.client.resource.Emailv31;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class User extends ScenarioSteps {
     EmailPage emailPage;
@@ -51,142 +61,67 @@ public class User extends ScenarioSteps {
      * Global instance of the scopes required by this quickstart.
      * If modifying these scopes, delete your previously saved tokens/ folder.
      */
-    private static final List<String> SCOPES = Collections.singletonList(GmailScopes.GMAIL_LABELS);
-    private static final String CREDENTIALS_FILE_PATH = "dataSources/credentials.json";
+     static final List<String> SCOPES = Collections.singletonList(GmailScopes.GMAIL_SEND);
+    private static final String CREDENTIALS_FILE_PATH = "/credentials.json";
 
     @Step
     public void opensWebsite(String website) {
         getDriver().navigate().to(website);
     }
 
-    private static Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT) throws IOException {
-        // Load client secrets.
-        InputStream in = User.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
-        if (in == null) {
-            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
-        }
-        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
-
-        // Build flow and trigger user authorization request.
-        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
-                .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
-                .setAccessType("offline")
-                .build();
-        LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-        return new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
-    }
-
-    public static MimeMessage createEmail(String to,
-                                          String from,
-                                          String subject,
-                                          String bodyText)
-            throws Exception {
-        Properties props = new Properties();
-        Session session = Session.getDefaultInstance(props, null);
-
-        MimeMessage email = new MimeMessage(session);
-
-        email.setFrom(new InternetAddress(from));
-        email.addRecipient(javax.mail.Message.RecipientType.TO,
-                new InternetAddress(to));
-        email.setSubject(subject);
-        email.setText(bodyText);
-        return email;
-    }
-
-    public static Message createMessageWithEmail(MimeMessage emailContent)
-            throws Exception {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        emailContent.writeTo(buffer);
-        byte[] bytes = buffer.toByteArray();
-        String encodedEmail = Base64.encodeBase64URLSafeString(bytes);
-        Message message = new Message();
-        message.setRaw(encodedEmail);
-        return message;
-    }
-
-    public static Message sendMessage(Gmail service,
-                                      String userId,
-                                      MimeMessage emailContent)
-            throws Exception {
-        Message message = createMessageWithEmail(emailContent);
-        message = service.users().messages().send(userId, message).execute();
-
-        System.out.println("Message id: " + message.getId());
-        System.out.println(message.toPrettyString());
-        return message;
-    }
-
     @Step
     public void sendAMessage(String address) throws Exception {
-        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-        Gmail service = new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
-                .setApplicationName(APPLICATION_NAME)
-                .build();
+        final String username = "*******@gmail.com";
+        final String password = "*******";
 
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
-        LocalDateTime now = LocalDateTime.now();
-        String subject = "TEST AT " + dtf.format(now).toString();
-        String bodyText = "The Waive Cancellation Fee approval is required for the Opportunity Z6e752Company\n" +
-                "\n" +
-                "\n" +
-                "Please click the link below to open the opportunity:\n" +
-                "https://my.salesforce.com/0061q000008DdpF\n" +
-                "\n" +
-                "To approve or reject this Waive Cancellation Fee via e-mail, use the reply function in your email program to send it back for approval or rejection.\n" +
-                "\n" +
-                "\n" +
-                "To approve the Waive Cancellation Fee, reply with the word 'Approve' as the first word of your reply.\n" +
-                "\n" +
-                "To reject the Waive Cancellation Fee, reply with the word 'Reject' as the first word of your reply.\n" +
-                "\n" +
-                "Many thanks";
-        MimeMessage mimeMessage = createEmail(address
-                , service.users().getProfile("user").getUserIp()
-                , subject
-                , bodyText);
-        Message message = createMessageWithEmail(mimeMessage);
-        sendMessage(service,
-                service.users().getProfile("user").getUserId(),
-                mimeMessage);
-        System.out.println("Done");
-//        final String username = "username@gmail.com";
-//        final String password = "password";
-//
-//        Properties prop = new Properties();
-//        prop.put("mail.smtp.host", "smtp.gmail.com");
-//        prop.put("mail.smtp.port", "465");
-//        prop.put("mail.smtp.auth", "true");
-//        prop.put("mail.smtp.socketFactory.port", "465");
-//        prop.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-//
-//        Session session = Session.getInstance(prop,
-//                new javax.mail.Authenticator() {
-//                    protected PasswordAuthentication getPasswordAuthentication() {
-//                        return new PasswordAuthentication(username, password);
-//                    }
-//                });
-//
-//        try {
-//
-//            MimeMessage message = new MimeMessage(session);
-//            message.setFrom(new InternetAddress("from@gmail.com"));
-//            message.setRecipients(
-//                    MimeMessage.RecipientType.TO,
-//                    InternetAddress.parse("to_username_a@gmail.com, to_username_b@yahoo.com")
-//            );
-//            message.setSubject("Testing Gmail SSL");
-//            message.setText("Dear Mail Crawler,"
-//                    + "\n\n Please do not spam my email!");
-//
-//            Transport.send(message);
-//
-//            System.out.println("Done");
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
+        Properties prop = new Properties();
+        prop.put("mail.smtp.host", "smtp.gmail.com");
+        prop.put("mail.smtp.port", "587");
+        prop.put("mail.smtp.auth", "true");
+        prop.put("mail.smtp.starttls.enable", "true"); //TLS
+
+        Session session = Session.getInstance(prop,
+                new javax.mail.Authenticator() {
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, password);
+                    }
+                });
+
+        try {
+
+            MimeMessage message = new MimeMessage(session);
+           message.setFrom(new InternetAddress("from@gmail.com"));
+            message.setRecipients(
+                    MimeMessage.RecipientType.TO,
+                    InternetAddress.parse("testing1234@mailinator.com")
+            );
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+            LocalDateTime now = LocalDateTime.now();
+            String subject = "TEST AT " + dtf.format(now).toString();
+            String bodyText = "The Waive Cancellation Fee approval is required for the Opportunity Z6e752Company\n" +
+                    "\n" +
+                    "\n" +
+                    "Please click the link below to open the opportunity:\n" +
+                    "https://my.salesforce.com/0061q000008DdpF\n" +
+                    "\n" +
+                    "To approve or reject this Waive Cancellation Fee via e-mail, use the reply function in your email program to send it back for approval or rejection.\n" +
+                    "\n" +
+                    "\n" +
+                    "To approve the Waive Cancellation Fee, reply with the word 'Approve' as the first word of your reply.\n" +
+                    "\n" +
+                    "To reject the Waive Cancellation Fee, reply with the word 'Reject' as the first word of your reply.\n" +
+                    "\n" +
+                    "Many thanks";
+            message.setSubject(subject);
+            message.setText(bodyText);
+
+            Transport.send(message);
+
+            System.out.println("Done");
+
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
     }
 
 

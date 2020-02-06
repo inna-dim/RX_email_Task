@@ -16,7 +16,7 @@ public class MailinatorPage extends PageObject {
 
     //-------------------------- Inbox ------------------------------\\
 
-    @FindBy(xpath = "//table//tr[contains(@id,'row')][1]")
+    @FindBy(xpath = "//table//tr[contains(@id,'row')][1]/td/a")
     public WebElement  latestMessage;
 
     //-------------------------- Message ------------------------------\\
